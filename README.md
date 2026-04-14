@@ -39,17 +39,5 @@ A proposta do sistema é oferecer uma solução simples e acessível em linha de
 - GitHub Actions
 - JSON para persistência local
 
-## Como rodar os testes
-mvn test
-
-## Como rodar o lint
-mvn checkstyle:check
-
-## Versionamento
-Versão atual: 1.0.0
-
 ## Autor
 Davi Alves Mota
-
-## Link do repositório público
-https://github.com/SEU-USUARIO/remedio-certo
