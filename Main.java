@@ -1,142 +1,151 @@
-package com.remedio.certo;
+package com.remediocerto;
 
-import com.remedio.certo.model.Medicamento;
-import com.remedio.certo.service.MedicamentoService;
-import com.remedio.certo.storage.JsonStorage;
-import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
 
+
 public class Main {
-    private static final String ARQUIVO_JSON = "data/medicamentos.json";
 
-    public static void main(String[] args) {
-        JsonStorage storage = new JsonStorage(ARQUIVO_JSON);
-        List<Medicamento> carregados = carregarMedicamentos(storage);
-        MedicamentoService service = new MedicamentoService(carregados);
-        Scanner scanner = new Scanner(System.in);
-        int opcao = -1;
+   private static final MedicamentoService service = new MedicamentoService();
+   private static final ViaCepClient viaCepClient = new ViaCepClient();
+   private static final Scanner scanner = new Scanner(System.in);
 
-        while (opcao != 0) {
-            exibirMenu();
-            try {
-                opcao = Integer.parseInt(scanner.nextLine());
-                switch (opcao) {
-                    case 1:
-                        cadastrarMedicamento(scanner, service, storage);
-                        break;
-                    case 2:
-                        listarMedicamentos(service);
-                        break;
-                    case 3:
-                        marcarComoTomado(scanner, service, storage);
-                        break;
-                    case 4:
-                        removerMedicamento(scanner, service, storage);
-                        break;
-                    case 5:
-                        service.resetarStatusDiario();
-                        salvarMedicamentos(storage, service);
-                        System.out.println("Status diário resetado com sucesso.");
-                        break;
-                    case 0:
-                        System.out.println("Encerrando o sistema.");
-                        break;
-                    default:
-                        System.out.println("Opção inválida.");
-                        break;
-                }
-            } catch (NumberFormatException e) {
-                System.out.println("Erro: digite um número válido.");
-            } catch (IllegalArgumentException e) {
-                System.out.println("Erro: " + e.getMessage());
-            }
-        }
 
-        scanner.close();
-    }
+   public static void main(String[] args) {
+       exibirBoasVindas();
 
-    private static List<Medicamento> carregarMedicamentos(JsonStorage storage) {
-        try {
-            return storage.carregar();
-        } catch (IOException e) {
-            System.out.println("Aviso: não foi possível carregar os dados anteriores.");
-            return new ArrayList<>();
-        }
-    }
+       boolean rodando = true;
+       while (rodando) {
+           exibirMenu();
+           String opcao = scanner.nextLine().trim();
 
-    private static void salvarMedicamentos(JsonStorage storage, MedicamentoService service) {
-        try {
-            storage.salvar(service.listarMedicamentos());
-        } catch (IOException e) {
-            System.out.println("Erro ao salvar os dados: " + e.getMessage());
-        }
-    }
+           switch (opcao) {
+               case "1" -> cadastrarMedicamento();
+               case "2" -> listarMedicamentos();
+               case "3" -> marcarComoTomado();
+               case "4" -> removerMedicamento();
+               case "5" -> resetarDia();
+               case "6" -> consultarFarmacia();
+               case "0" -> rodando = false;
+               default -> System.out.println("Opção inválida. Tente novamente.");
+           }
+       }
 
-    private static void exibirMenu() {
-        System.out.println("\n=== REMÉDIO CERTO ===");
-        System.out.println("1 - Cadastrar medicamento");
-        System.out.println("2 - Listar medicamentos");
-        System.out.println("3 - Marcar como tomado");
-        System.out.println("4 - Remover medicamento");
-        System.out.println("5 - Resetar status diário");
-        System.out.println("0 - Sair");
-        System.out.print("Escolha: ");
-    }
+       System.out.println("\nAté logo! Cuide-se bem. 💊");
+       scanner.close();
+   }
 
-    private static void cadastrarMedicamento(
-            Scanner scanner,
-            MedicamentoService service,
-            JsonStorage storage
-    ) {
-        System.out.print("Nome: ");
-        String nome = scanner.nextLine();
+   private static void exibirBoasVindas() {
+       System.out.println("╔══════════════════════════════════╗");
+       System.out.println("║        💊 REMÉDIO CERTO          ║");
+       System.out.println("║  Controle de Medicamentos v1.1.0 ║");
+       System.out.println("╚══════════════════════════════════╝");
+       System.out.println();
+   }
 
-        System.out.print("Dose: ");
-        String dose = scanner.nextLine();
+   private static void exibirMenu() {
+       System.out.println("\n--- MENU ---");
+       System.out.println("1. Cadastrar medicamento");
+       System.out.println("2. Listar medicamentos");
+       System.out.println("3. Marcar como tomado");
+       System.out.println("4. Remover medicamento");
+       System.out.println("5. Resetar dia");
+       System.out.println("6. Buscar farmácia por CEP");
+       System.out.println("0. Sair");
+       System.out.print("Escolha uma opção: ");
+   }
 
-        System.out.print("Horário: ");
-        String horario = scanner.nextLine();
+   private static void cadastrarMedicamento() {
+       System.out.println("\n--- CADASTRAR MEDICAMENTO ---");
+       System.out.print("Nome do medicamento: ");
+       String nome = scanner.nextLine();
 
-        service.adicionarMedicamento(nome, dose, horario);
-        salvarMedicamentos(storage, service);
-        System.out.println("Medicamento cadastrado com sucesso.");
-    }
+       System.out.print("Dose (ex: 500mg, 1 comprimido): ");
+       String dose = scanner.nextLine();
 
-    private static void listarMedicamentos(MedicamentoService service) {
-        List<Medicamento> medicamentos = service.listarMedicamentos();
-        if (medicamentos.isEmpty()) {
-            System.out.println("Nenhum medicamento cadastrado.");
-            return;
-        }
+       System.out.print("Horário (ex: 08:00, após o almoço): ");
+       String horario = scanner.nextLine();
 
-        for (int i = 0; i < medicamentos.size(); i++) {
-            System.out.println(i + " - " + medicamentos.get(i));
-        }
-    }
+       if (service.cadastrar(nome, dose, horario)) {
+           System.out.println("✓ Medicamento cadastrado com sucesso!");
+       } else {
+           System.out.println("✗ Erro: preencha todos os campos corretamente.");
+       }
+   }
 
-    private static void marcarComoTomado(
-            Scanner scanner,
-            MedicamentoService service,
-            JsonStorage storage
-    ) {
-        System.out.print("Índice do medicamento: ");
-        int indice = Integer.parseInt(scanner.nextLine());
-        service.marcarComoTomado(indice);
-        salvarMedicamentos(storage, service);
-        System.out.println("Medicamento marcado como tomado.");
-    }
+   private static void listarMedicamentos() {
+       System.out.println("\n--- LISTA DE MEDICAMENTOS ---");
+       List<Medicamento> lista = service.listar();
 
-    private static void removerMedicamento(
-            Scanner scanner,
-            MedicamentoService service,
-            JsonStorage storage
-    ) {
-        System.out.print("Índice do medicamento: ");
-        int indice = Integer.parseInt(scanner.nextLine());
-        service.removerMedicamento(indice);
-        salvarMedicamentos(storage, service);
-        System.out.println("Medicamento removido com sucesso.");
-    }
+       if (lista.isEmpty()) {
+           System.out.println("Nenhum medicamento cadastrado.");
+           return;
+       }
+
+       for (int i = 0; i < lista.size(); i++) {
+           System.out.printf("%d. %s%n", i + 1, lista.get(i));
+       }
+   }
+
+   private static void marcarComoTomado() {
+       listarMedicamentos();
+       List<Medicamento> lista = service.listar();
+       if (lista.isEmpty()) {
+           return;
+       }
+
+       System.out.print("\nNúmero do medicamento tomado: ");
+       try {
+           int indice = Integer.parseInt(scanner.nextLine().trim());
+           if (service.marcarComoTomado(indice)) {
+               System.out.println("✓ Medicamento marcado como tomado!");
+           } else {
+               System.out.println("✗ Número inválido.");
+           }
+       } catch (NumberFormatException e) {
+           System.out.println("✗ Por favor, informe um número válido.");
+       }
+   }
+
+   private static void removerMedicamento() {
+       listarMedicamentos();
+       List<Medicamento> lista = service.listar();
+       if (lista.isEmpty()) {
+           return;
+       }
+
+       System.out.print("\nNúmero do medicamento a remover: ");
+       try {
+           int indice = Integer.parseInt(scanner.nextLine().trim());
+           if (service.remover(indice)) {
+               System.out.println("✓ Medicamento removido com sucesso!");
+           } else {
+               System.out.println("✗ Número inválido.");
+           }
+       } catch (NumberFormatException e) {
+           System.out.println("✗ Por favor, informe um número válido.");
+       }
+   }
+
+   private static void resetarDia() {
+       service.resetarDia();
+       System.out.println("✓ Status do dia resetado. Bom dia! 🌅");
+   }
+
+   private static void consultarFarmacia() {
+       System.out.println("\n--- BUSCAR ENDEREÇO DE FARMÁCIA ---");
+       System.out.print("Digite o CEP (somente números): ");
+       String cep = scanner.nextLine().trim();
+
+       System.out.println("🔍 Consultando endereço...");
+       EnderecoDTO endereco = viaCepClient.buscarEndereco(cep);
+
+       if (endereco == null) {
+           System.out.println("✗ CEP não encontrado ou inválido.");
+       } else {
+           System.out.println("✓ Endereço encontrado:");
+           System.out.println("   " + endereco);
+       }
+   }
 }
+
